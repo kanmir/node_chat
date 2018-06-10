@@ -2,23 +2,32 @@ var socket = io();
 
 socket.on('connect', function () {
     console.log('Connected to server');
-
 });
 
 socket.on('newMessage', function (message) {
-    console.log('newMessage', message);
-    var li = jQuery('<li></li>');
-    li.text(message.from + ': ' + message.text);
-    jQuery('#messages').append(li);
+    var date = new Date(message.createdAt);
+    var minutes = date.getMinutes().toString().length === 1 ? '0' + date.getMinutes() : date.getMinutes();
+    var formattedTime = date.getHours() + ':' + minutes;
+    var template = jQuery('#message-template').html();
+    var html = Mustache.render(template, {
+        text: message.text,
+        from: message.from,
+        createdAt: formattedTime
+    });
+    jQuery('#messages').append(html);
 });
 
 socket.on('newLocationMessage', function (message) {
-    var li = jQuery('<li></li>');
-    var a = jQuery('<a target="_blank">My current location</a>');
-    li.text(message.from + ': ');
-    a.attr('href', message.url);
-    li.append(a);
-    jQuery('#messages').append(li);
+    var date = new Date(message.createdAt);
+    var minutes = date.getMinutes().toString().length === 1 ? '0' + date.getMinutes() : date.getMinutes();
+    var formattedTime = date.getHours() + ':' + minutes;
+    var template = jQuery('#location-message-template').html();
+    var html = Mustache.render(template, {
+        url: message.url,
+        from: message.from,
+        createdAt: formattedTime
+    });
+    jQuery('#messages').append(html);
 });
 
 socket.on('disconnect', function () {
@@ -28,11 +37,16 @@ socket.on('disconnect', function () {
 jQuery('#message-form').on('submit', function (event) {
     event.preventDefault();
     var messageInput = jQuery('[name=message]');
+    if (messageInput.val().trim() === '')  {
+        messageInput.trigger('focus');
+        return;
+    }
     socket.emit('createMessage', {
         from: 'User',
         text: messageInput.val()
     }, function () {
         messageInput.val('');
+        messageInput.trigger('focus');
     })
 });
 
